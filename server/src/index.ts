@@ -41,6 +41,7 @@ app.use('/api/dashboard', authenticate, dashboardRoutes)
 app.use('/api/history', authenticate, historyRoutes)
 app.use('/api/team-draws', authenticate, teamDrawRoutes)
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)
   res.status(500).json({ message: 'Erro interno do servidor' })
