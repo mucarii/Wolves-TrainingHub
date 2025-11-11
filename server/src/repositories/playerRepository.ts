@@ -13,6 +13,7 @@ export type PlayerRecord = {
   medical_notes: string | null
   created_at: string
   updated_at: string
+  is_true: number
 }
 
 export type PlayerInput = {
@@ -31,16 +32,20 @@ export type PlayerUpdate = Partial<PlayerInput>
 
 const baseSelect = `
   SELECT id, name, email, phone, position, short_position, frequency, status,
-         emergency_contact, medical_notes, created_at, updated_at
+         emergency_contact, medical_notes, created_at, updated_at, is_true
   FROM players
 `
 
 export const listPlayers = (): PlayerRecord[] => {
-  return db.prepare(`${baseSelect} ORDER BY name`).all() as PlayerRecord[]
+  return db
+    .prepare(`${baseSelect} WHERE is_true = 1 ORDER BY name`)
+    .all() as PlayerRecord[]
 }
 
 export const getPlayerById = (id: number): PlayerRecord | undefined => {
-  return db.prepare(`${baseSelect} WHERE id = ?`).get(id) as PlayerRecord | undefined
+  return db
+    .prepare(`${baseSelect} WHERE id = ? AND is_true = 1`)
+    .get(id) as PlayerRecord | undefined
 }
 
 export const createPlayer = (payload: PlayerInput): PlayerRecord => {
@@ -111,17 +116,23 @@ export const updatePlayer = (id: number, payload: PlayerUpdate): PlayerRecord =>
 }
 
 export const deletePlayer = (id: number) => {
-  const statement = db.prepare(`DELETE FROM players WHERE id = ?`)
-  statement.run(id)
+  const statement = db.prepare(
+    `UPDATE players SET is_true = 0, status = 'Inativo', updated_at = @updated_at WHERE id = @id`,
+  )
+  statement.run({ id, updated_at: new Date().toISOString() })
 }
 
 export const getPlayerStats = () => {
-  const { total } = db.prepare(`SELECT COUNT(*) as total FROM players`).get() as { total: number }
+  const { total } = db
+    .prepare(`SELECT COUNT(*) as total FROM players WHERE is_true = 1`)
+    .get() as { total: number }
   const { active } = db
-    .prepare(`SELECT COUNT(*) as active FROM players WHERE status = 'Ativo'`)
+    .prepare(`SELECT COUNT(*) as active FROM players WHERE status = 'Ativo' AND is_true = 1`)
     .get() as { active: number }
   const { high_frequency } = db
-    .prepare(`SELECT COUNT(*) as high_frequency FROM players WHERE frequency >= 80`)
+    .prepare(
+      `SELECT COUNT(*) as high_frequency FROM players WHERE frequency >= 80 AND is_true = 1`,
+    )
     .get() as { high_frequency: number }
 
   return { total, active, high_frequency }

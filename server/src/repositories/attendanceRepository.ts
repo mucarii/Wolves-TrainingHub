@@ -40,6 +40,7 @@ export const listAttendanceForDate = (trainingDate: string): AttendanceResponse[
        LEFT JOIN attendance a
               ON a.player_id = p.id
              AND a.training_date = @trainingDate
+      WHERE p.is_true = 1
       ORDER BY p.name`,
   )
 
@@ -82,11 +83,17 @@ export const bulkSaveAttendance = (trainingDate: string, entries: AttendanceReco
 export const getAttendanceSummary = (trainingDate: string) => {
   const present = db
     .prepare(
-      `SELECT COUNT(*) as count FROM attendance WHERE training_date = ? AND present = 1`,
+      `SELECT COUNT(*) as count
+         FROM attendance a
+         JOIN players p
+           ON p.id = a.player_id
+        WHERE a.training_date = ?
+          AND a.present = 1
+          AND p.is_true = 1`,
     )
     .get(trainingDate) as { count: number } | undefined
 
-  const total = db.prepare(`SELECT COUNT(*) as total FROM players`).get() as
+  const total = db.prepare(`SELECT COUNT(*) as total FROM players WHERE is_true = 1`).get() as
     | { total: number }
     | undefined
 
@@ -133,6 +140,7 @@ export const getPlayerHistory = (startDate?: string) => {
          LEFT JOIN attendance a
                 ON a.player_id = p.id
                AND (@startDate IS NULL OR a.training_date >= @startDate)
+        WHERE p.is_true = 1
         GROUP BY p.id
         ORDER BY p.name`,
     )
@@ -151,4 +159,29 @@ export const getDistinctTrainingSessions = (startDate?: string) => {
     .get({ startDate: startDate ?? null }) as { sessions: number } | undefined
 
   return row?.sessions ?? 0
+}
+
+type PlayerPresenceEntryRow = {
+  player_id: number
+  name: string
+  training_date: string
+}
+
+export const getPlayerPresenceEntries = (startDate?: string) => {
+  const rows = db
+    .prepare(
+      `SELECT p.id as player_id,
+              p.name,
+              a.training_date
+         FROM attendance a
+         JOIN players p
+           ON p.id = a.player_id
+        WHERE a.present = 1
+          AND p.is_true = 1
+          AND (@startDate IS NULL OR a.training_date >= @startDate)
+        ORDER BY p.name, a.training_date`,
+    )
+    .all({ startDate: startDate ?? null }) as PlayerPresenceEntryRow[]
+
+  return rows
 }

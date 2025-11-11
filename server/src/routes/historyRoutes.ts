@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   getDistinctTrainingSessions,
   getPlayerHistory,
+  getPlayerPresenceEntries,
 } from '../repositories/attendanceRepository'
 
 const router = Router()
@@ -11,13 +12,17 @@ const clampDays = (value: number) => {
   return Math.min(Math.max(value, 7), 365)
 }
 
+const resolveStartDateISO = (days: number) => {
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - (days - 1))
+  return startDate.toISOString().slice(0, 10)
+}
+
 router.get('/', (req, res) => {
   const daysParam = typeof req.query.days === 'string' ? Number(req.query.days) : 30
   const days = clampDays(daysParam)
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - (days - 1))
-  const startDateISO = startDate.toISOString().slice(0, 10)
+  const startDateISO = resolveStartDateISO(days)
 
   const playerHistory = getPlayerHistory(startDateISO)
   const totalSessions = getDistinctTrainingSessions(startDateISO)
@@ -57,6 +62,20 @@ router.get('/', (req, res) => {
     per_player: perPlayer,
     days,
     start_date: startDateISO,
+  })
+})
+
+router.get('/entries', (req, res) => {
+  const daysParam = typeof req.query.days === 'string' ? Number(req.query.days) : 30
+  const days = clampDays(daysParam)
+  const startDateISO = resolveStartDateISO(days)
+
+  const entries = getPlayerPresenceEntries(startDateISO)
+
+  res.json({
+    days,
+    start_date: startDateISO,
+    entries,
   })
 })
 

@@ -14,7 +14,8 @@ const MIGRATIONS = [
     emergency_contact TEXT,
     medical_notes TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    is_true INTEGER NOT NULL DEFAULT 1
   );`,
   `CREATE TABLE IF NOT EXISTS attendance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,8 +89,19 @@ export const runMigrations = () => {
     for (const statement of MIGRATIONS) {
       db.prepare(statement).run()
     }
+    ensureIsTrueColumn()
   })
   migrate()
+}
+
+const ensureIsTrueColumn = () => {
+  const columns = db.prepare(`PRAGMA table_info(players)`).all() as Array<{
+    name: string
+  }>
+  const hasColumn = columns.some((column) => column.name === 'is_true')
+  if (!hasColumn) {
+    db.prepare(`ALTER TABLE players ADD COLUMN is_true INTEGER NOT NULL DEFAULT 1`).run()
+  }
 }
 
 export const seedDatabase = () => {

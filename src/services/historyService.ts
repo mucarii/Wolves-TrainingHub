@@ -17,6 +17,16 @@ type HistoryApiResponse = {
   start_date: string
 }
 
+type HistoryExportApiResponse = {
+  days: number
+  start_date: string
+  entries: Array<{
+    player_id: number
+    name: string
+    training_date: string
+  }>
+}
+
 export type HistorySummary = {
   trainings: number
   averageFrequency: number
@@ -32,6 +42,16 @@ export type HistorySummary = {
   }>
   days: number
   startDate: string
+}
+
+export type HistoryExportData = {
+  days: number
+  startDate: string
+  entries: Array<{
+    playerId: number
+    name: string
+    trainingDate: string
+  }>
 }
 
 export const historyService = {
@@ -52,6 +72,19 @@ export const historyService = {
       })),
       days: data.days,
       startDate: data.start_date,
+    }
+  },
+
+  async getPresenceEntries(days = 30): Promise<HistoryExportData> {
+    const data = await apiClient.get<HistoryExportApiResponse>(`/api/history/entries?days=${days}`)
+    return {
+      days: data.days,
+      startDate: data.start_date,
+      entries: data.entries.map((entry) => ({
+        playerId: entry.player_id,
+        name: entry.name,
+        trainingDate: entry.training_date,
+      })),
     }
   },
 }

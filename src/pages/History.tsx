@@ -14,6 +14,7 @@ const HistoryPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [days, setDays] = useState(30)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -34,6 +35,56 @@ const HistoryPage = () => {
     loadSummary()
   }, [days])
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true)
+      const exportData = await historyService.getPresenceEntries(days)
+
+      if (exportData.entries.length === 0) {
+        window.alert('Não há presenças registradas no período selecionado para exportar.')
+        return
+      }
+
+      const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' })
+      const escapeCell = (value: string) =>
+        value
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+
+      const rows = exportData.entries
+        .map((entry) => {
+          const formattedDate = dateFormatter.format(new Date(entry.trainingDate))
+          return `<tr><td>${escapeCell(entry.name)}</td><td>${escapeCell(formattedDate)}</td></tr>`
+        })
+        .join('')
+
+      const table = `<table border="1"><thead><tr><th>Jogador</th><th>Data da Presença</th></tr></thead><tbody>${rows}</tbody></table>`
+      const blob = new Blob(['\ufeff', table], {
+        type: 'application/vnd.ms-excel;charset=utf-8;',
+      })
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `relatorio-presencas-${new Date().toISOString().slice(0, 10)}.xls`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível exportar o relatório agora.'
+      window.alert(message)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -46,9 +97,16 @@ const HistoryPage = () => {
             Acompanhe a frequência dos jogadores (últimos {days} dias)
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-white hover:border-blue-400/60">
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={isLoading || isExporting}
+          className={`flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-white transition ${
+            isLoading || isExporting ? 'cursor-not-allowed opacity-60' : 'hover:border-blue-400/60'
+          }`}
+        >
           <Download size={18} />
-          Exportar Relatório
+          {isExporting ? 'Gerando XLS...' : 'Exportar Relatorio'}
         </button>
       </div>
 
