@@ -34,6 +34,24 @@ const MIGRATIONS = [
     password_hash TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );`,
+  `CREATE TABLE IF NOT EXISTS team_draws (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seed TEXT NOT NULL,
+    draw_type TEXT NOT NULL,
+    teams_count INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );`,
+  `CREATE TABLE IF NOT EXISTS team_draw_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    draw_id INTEGER NOT NULL,
+    team_index INTEGER NOT NULL,
+    player_id INTEGER,
+    player_name TEXT NOT NULL,
+    player_position TEXT,
+    player_short_position TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (draw_id) REFERENCES team_draws(id) ON DELETE CASCADE
+  );`,
 ]
 
 const seedPlayers = [

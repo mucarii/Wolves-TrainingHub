@@ -46,30 +46,27 @@ const HistoryPage = () => {
       }
 
       const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' })
-      const escapeCell = (value: string) =>
-        value
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;')
+      const escapeCsv = (value: string) => {
+        const needsQuotes = /[",;\n]/.test(value)
+        const sanitized = value.replace(/"/g, '""')
+        return needsQuotes ? `"${sanitized}"` : sanitized
+      }
 
-      const rows = exportData.entries
-        .map((entry) => {
-          const formattedDate = dateFormatter.format(new Date(entry.trainingDate))
-          return `<tr><td>${escapeCell(entry.name)}</td><td>${escapeCell(formattedDate)}</td></tr>`
-        })
-        .join('')
+      const csvRows = exportData.entries.map((entry) => {
+        const formattedDate = dateFormatter.format(new Date(entry.trainingDate))
+        return [escapeCsv(entry.name), escapeCsv(formattedDate)].join(';')
+      })
 
-      const table = `<table border="1"><thead><tr><th>Jogador</th><th>Data da Presença</th></tr></thead><tbody>${rows}</tbody></table>`
-      const blob = new Blob(['\ufeff', table], {
-        type: 'application/vnd.ms-excel;charset=utf-8;',
+      const header = 'Jogador;Data da Presenca'
+      const csvContent = [header, ...csvRows].join('\n')
+      const blob = new Blob(['\ufeff', csvContent], {
+        type: 'text/csv;charset=utf-8;',
       })
 
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `relatorio-presencas-${new Date().toISOString().slice(0, 10)}.xls`
+      link.download = `relatorio-presencas-${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -106,7 +103,7 @@ const HistoryPage = () => {
           }`}
         >
           <Download size={18} />
-          {isExporting ? 'Gerando XLS...' : 'Exportar Relatorio'}
+          {isExporting ? 'Gerando CSV...' : 'Exportar CSV'}
         </button>
       </div>
 

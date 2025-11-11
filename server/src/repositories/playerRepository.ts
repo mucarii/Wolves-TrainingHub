@@ -42,6 +42,12 @@ export const listPlayers = (): PlayerRecord[] => {
     .all() as PlayerRecord[]
 }
 
+export const listActivePlayers = (): PlayerRecord[] => {
+  return db
+    .prepare(`${baseSelect} WHERE is_true = 1 AND status = 'Ativo' ORDER BY name`)
+    .all() as PlayerRecord[]
+}
+
 export const getPlayerById = (id: number): PlayerRecord | undefined => {
   return db
     .prepare(`${baseSelect} WHERE id = ? AND is_true = 1`)

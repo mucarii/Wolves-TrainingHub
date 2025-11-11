@@ -5,6 +5,7 @@ import playerRoutes from './routes/playerRoutes'
 import attendanceRoutes from './routes/attendanceRoutes'
 import dashboardRoutes from './routes/dashboardRoutes'
 import historyRoutes from './routes/historyRoutes'
+import teamDrawRoutes from './routes/teamDrawRoutes'
 import authRoutes from './routes/authRoutes'
 import healthRoutes from './routes/healthRoutes'
 import { runMigrations, seedDatabase, ensureAdminUser } from './utils/bootstrap'
@@ -38,6 +39,7 @@ app.use('/api/players', authenticate, playerRoutes)
 app.use('/api/attendance', authenticate, attendanceRoutes)
 app.use('/api/dashboard', authenticate, dashboardRoutes)
 app.use('/api/history', authenticate, historyRoutes)
+app.use('/api/team-draws', authenticate, teamDrawRoutes)
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)

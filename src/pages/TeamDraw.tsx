@@ -1,94 +1,108 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Shuffle as ShuffleIcon, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Shuffle as ShuffleIcon, Users, History as HistoryIcon } from 'lucide-react'
 import { playerService } from '../services/playerService'
+import { teamDrawService, type TeamDrawResult } from '../services/teamDrawService'
 import type { Player } from '../types/player'
 
 const TeamDrawPage = () => {
   const [players, setPlayers] = useState<Player[]>([])
   const [teamsCount, setTeamsCount] = useState(2)
   const [drawType, setDrawType] = useState<'balanced' | 'random'>('balanced')
-  const [result, setResult] = useState<Player[][]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [seedInput, setSeedInput] = useState('')
+  const [currentDraw, setCurrentDraw] = useState<TeamDrawResult | null>(null)
+  const [history, setHistory] = useState<TeamDrawResult[]>([])
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(true)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadPlayers = async () => {
-      try {
-        setIsLoading(true)
-        setErrorMessage(null)
-        const data = await playerService.list()
-        setPlayers(data)
-      } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : 'Não foi possível carregar os jogadores.',
-        )
-      } finally {
-        setIsLoading(false)
-      }
+  const loadPlayers = useCallback(async () => {
+    try {
+      setIsLoadingPlayers(true)
+      setErrorMessage(null)
+      const data = await playerService.list()
+      setPlayers(data)
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Nao foi possivel carregar os jogadores.',
+      )
+    } finally {
+      setIsLoadingPlayers(false)
     }
-
-    loadPlayers()
   }, [])
 
-  const presentPlayers = useMemo(
+  const loadHistory = useCallback(async () => {
+    try {
+      setIsHistoryLoading(true)
+      const items = await teamDrawService.list()
+      setHistory(items)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsHistoryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadPlayers()
+    loadHistory()
+  }, [loadPlayers, loadHistory])
+
+  const activePlayers = useMemo(
     () => players.filter((player) => player.status === 'Ativo'),
     [players],
   )
 
-  const handleDraw = () => {
-    if (presentPlayers.length === 0) {
+  const handleDraw = async () => {
+    if (activePlayers.length === 0) {
       setErrorMessage('Nenhum jogador ativo para o sorteio.')
       return
     }
 
-    const shuffled = [...presentPlayers].sort(() => Math.random() - 0.5)
-    const groups = Array.from({ length: teamsCount }, () => [] as Player[])
-
-    if (drawType === 'balanced') {
-      const offense = shuffled.filter((player) => player.shortPosition === 'atk')
-      const defense = shuffled.filter((player) => player.shortPosition === 'def')
-      const others = shuffled.filter(
-        (player) => player.shortPosition !== 'atk' && player.shortPosition !== 'def',
-      )
-
-      const distribute = (list: Player[]) => {
-        list.forEach((player, index) => {
-          groups[index % teamsCount].push(player)
-        })
+    try {
+      setIsDrawing(true)
+      setErrorMessage(null)
+      const payload = {
+        teamsCount,
+        drawType,
+        seed: seedInput.trim() || undefined,
       }
-
-      distribute(offense)
-      distribute(defense)
-      distribute(others)
-    } else {
-      shuffled.forEach((player, index) => {
-        groups[index % teamsCount].push(player)
-      })
+      const draw = await teamDrawService.create(payload)
+      setCurrentDraw(draw)
+      if (!seedInput) {
+        setSeedInput(draw.seed)
+      }
+      await loadHistory()
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Nao foi possivel realizar o sorteio.',
+      )
+    } finally {
+      setIsDrawing(false)
     }
-
-    setResult(groups)
   }
+
+  const formatDateTime = (value: string) =>
+    new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-sm uppercase tracking-widest text-blue-400">
-          Wolves Training Hub
-        </p>
+        <p className="text-sm uppercase tracking-widest text-blue-400">Wolves Training Hub</p>
         <h2 className="mt-2 text-3xl font-semibold text-white">Sorteio de Times</h2>
-        <p className="text-sm text-wolves-muted">Forme times balanceados para os treinos</p>
+        <p className="text-sm text-wolves-muted">Forme times balanceados e auditaveis</p>
       </div>
 
       <div className="rounded-3xl border border-wolves-border bg-wolves-card/70 p-6 shadow-card">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-4">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Número de Times</label>
+            <label className="text-sm font-semibold text-white/80">Numero de Times</label>
             <select
               value={teamsCount}
               onChange={(event) => setTeamsCount(Number(event.target.value))}
               className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
-              {[2, 3, 4].map((value) => (
+              {[2, 3, 4, 5].map((value) => (
                 <option key={value} value={value} className="text-black">
                   {value} Times
                 </option>
@@ -104,18 +118,31 @@ const TeamDrawPage = () => {
               className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               <option value="balanced" className="text-black">
-                Balanceado por posição
+                Balanceado por posicao
               </option>
               <option value="random" className="text-black">
-                Totalmente aleatório
+                Totalmente aleatorio
               </option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Jogadores Disponíveis</label>
+            <label className="text-sm font-semibold text-white/80">Seed (opcional)</label>
+            <input
+              value={seedInput}
+              onChange={(event) => setSeedInput(event.target.value)}
+              placeholder="Ex.: treino-2025-11-10"
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+            <p className="text-xs text-wolves-muted">
+              Use a mesma seed para reproduzir um sorteio anterior.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white/80">Jogadores disponiveis</label>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xl font-semibold text-white">
-              {isLoading ? '...' : presentPlayers.length}
+              {isLoadingPlayers ? '...' : activePlayers.length}
             </div>
           </div>
         </div>
@@ -123,35 +150,42 @@ const TeamDrawPage = () => {
         <button
           onClick={handleDraw}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isLoading || presentPlayers.length === 0}
+          disabled={isLoadingPlayers || activePlayers.length === 0 || isDrawing}
         >
           <ShuffleIcon size={18} />
-          Sortear Times
+          {isDrawing ? 'Sorteando...' : 'Sortear times'}
         </button>
 
         {errorMessage && (
           <p className="mt-4 text-center text-sm text-red-300">{errorMessage}</p>
         )}
+
+        {currentDraw && (
+          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+            Seed utilizada: <code className="text-blue-300">{currentDraw.seed}</code> -{' '}
+            Gerado em {formatDateTime(currentDraw.createdAt)}
+          </div>
+        )}
       </div>
 
       <div className="rounded-3xl border border-wolves-border bg-wolves-card/70 p-6 shadow-card">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-white">Jogadores Presentes</h3>
+          <h3 className="text-xl font-semibold text-white">Jogadores ativos</h3>
           <div className="flex items-center gap-2 text-sm text-wolves-muted">
             <Users size={16} />
-            Lista dos jogadores disponíveis para o sorteio
+            Lista usada como base para o sorteio
           </div>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {isLoading && (
+          {isLoadingPlayers && (
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm text-wolves-muted">
               Carregando jogadores...
             </div>
           )}
 
-          {!isLoading &&
-            presentPlayers.map((player) => (
+          {!isLoadingPlayers &&
+            activePlayers.map((player) => (
               <div
                 key={player.id}
                 className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
@@ -166,34 +200,39 @@ const TeamDrawPage = () => {
               </div>
             ))}
 
-          {!isLoading && presentPlayers.length === 0 && (
+          {!isLoadingPlayers && activePlayers.length === 0 && (
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-wolves-muted">
-              Nenhum jogador ativo disponível. Cadastre e ative jogadores para sortear.
+              Nenhum jogador ativo disponivel. Cadastre e ative jogadores para sortear.
             </div>
           )}
         </div>
       </div>
 
-      {result.length > 0 && (
+      {currentDraw && (
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-white">Resultado do Sorteio</h3>
+          <h3 className="text-xl font-semibold text-white">Resultado do sorteio</h3>
           <div className="grid gap-4 md:grid-cols-2">
-            {result.map((team, index) => (
+            {currentDraw.teams.map((team) => (
               <div
-                key={`team-${index + 1}`}
+                key={`team-${team.index + 1}`}
                 className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 p-5"
               >
-                <p className="text-sm uppercase tracking-wider text-blue-400">Time {index + 1}</p>
+                <p className="text-sm uppercase tracking-wider text-blue-400">
+                  Time {team.index + 1}
+                </p>
                 <ul className="mt-4 space-y-3">
-                  {team.map((player) => (
-                    <li key={player.id} className="flex items-center justify-between text-sm text-white">
+                  {team.players.map((player) => (
+                    <li
+                      key={`${player.playerId ?? 'ghost'}-${player.name}`}
+                      className="flex items-center justify-between text-sm text-white"
+                    >
                       {player.name}
                       <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase text-wolves-muted">
-                        {player.shortPosition}
+                        {player.shortPosition ? player.shortPosition.toUpperCase() : '--'}
                       </span>
                     </li>
                   ))}
-                  {team.length === 0 && (
+                  {team.players.length === 0 && (
                     <li className="text-sm text-wolves-muted">Nenhum jogador sorteado.</li>
                   )}
                 </ul>
@@ -202,6 +241,70 @@ const TeamDrawPage = () => {
           </div>
         </div>
       )}
+
+      <div className="rounded-3xl border border-wolves-border bg-wolves-card/70 p-6 shadow-card">
+        <div className="flex items-center gap-2 text-white">
+          <HistoryIcon size={18} />
+          <div>
+            <p className="text-lg font-semibold">Historico recente</p>
+            <p className="text-sm text-wolves-muted">
+              Ultimos sorteios com seed, configuracao e equipes.
+            </p>
+          </div>
+        </div>
+
+        {isHistoryLoading && (
+          <p className="mt-4 text-sm text-wolves-muted">Carregando historico...</p>
+        )}
+
+        {!isHistoryLoading && history.length === 0 && (
+          <p className="mt-4 text-sm text-wolves-muted">
+            Nenhum sorteio registrado ainda. Gere o primeiro para iniciar o historico.
+          </p>
+        )}
+
+        {!isHistoryLoading && history.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {history.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/90"
+              >
+                <p className="font-semibold">
+                  {formatDateTime(item.createdAt)} - Seed{' '}
+                  <code className="text-blue-300">{item.seed}</code>
+                </p>
+                <p className="text-xs text-wolves-muted">
+                  {item.drawType === 'balanced' ? 'Balanceado' : 'Aleatorio'} •{' '}
+                  {item.teamsCount} {item.teamsCount > 1 ? 'times' : 'time'}
+                </p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {item.teams.map((team) => (
+                    <div
+                      key={`history-${item.id}-${team.index}`}
+                      className="rounded-xl border border-white/10 bg-white/5 p-3"
+                    >
+                      <p className="text-xs uppercase tracking-wider text-blue-300">
+                        Time {team.index + 1}
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-white/80">
+                        {team.players.map((player) => (
+                          <li key={`${item.id}-${team.index}-${player.name}`}>
+                            {player.name} - {player.shortPosition ? player.shortPosition.toUpperCase() : '--'}
+                          </li>
+                        ))}
+                        {team.players.length === 0 && (
+                          <li className="text-wolves-muted">Sem jogadores</li>
+                        )}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
