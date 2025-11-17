@@ -29,7 +29,7 @@ cd server
 npm install
 npm run dev            # http://localhost:3333
 ```
-O banco é criado em `server/data/wolves.db`. Um usuário administrador é gerado automaticamente com as credenciais definidas no `.env` (padrão `admin@wolves.com / wolves123`). Para popular jogadores fictícios, defina `SEED_ON_START=true` antes da primeira execução.
+O banco é criado em `server/data/wolves.db`. Um usuário administrador é gerado automaticamente com as credenciais definidas no `.env`. Para popular jogadores fictícios, defina `SEED_ON_START=true` antes da primeira execução.
 
 ### Frontend
 ```bash
@@ -75,10 +75,3 @@ Todos os endpoints (exceto `/health` e `/api/auth/login`) exigem token JWT via `
 - Exportacao de presencas em CSV (UTF-8) direto da tela de historico.
 - Listagem, cadastro e edição de jogadores com persistência real.
 - Registro de presenças por dia, histórico agregando estatísticas e sorteio de times usando apenas os dados ativos do banco.
-
-## Próximos passos sugeridos
-
-1. Implementar cadastro/gestão de usuários e redefinição de senha.
-2. Exigir token também para exportações/relatórios e adicionar refresh tokens.
-3. Criar scripts utilitários (`npm run dev:full`) para subir front e back juntos.
-4. Versionar migrações com ferramenta dedicada (ex.: `better-sqlite3-migrations`). 
