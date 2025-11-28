@@ -15,8 +15,8 @@ const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
   { label: 'Cadastrar Jogador', path: '/players/new', icon: UserPlus, exact: true },
   { label: 'Lista de Jogadores', path: '/players', icon: Users, exact: true },
-  { label: 'Presen��a', path: '/attendance', icon: CheckCircle, exact: true },
-  { label: 'Hist��rico', path: '/history', icon: History, exact: true },
+  { label: 'Presenca', path: '/attendance', icon: CheckCircle, exact: true },
+  { label: 'Historico', path: '/history', icon: History, exact: true },
   { label: 'Sorteio de Times', path: '/team-draw', icon: Shuffle, exact: true },
 ]
 
@@ -32,8 +32,8 @@ const AppLayout = () => {
       />
 
       <div className="flex flex-1 flex-col">
-        <header className="border-b border-wolves-border bg-[#090F1B]/80 px-6 py-4 backdrop-blur lg:px-10 lg:py-6">
-          <div className="flex items-center justify-between gap-3">
+        <header className="border-b border-wolves-border bg-[#090F1B]/80 px-4 py-3 backdrop-blur sm:px-6 sm:py-4 lg:px-10 lg:py-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -45,22 +45,22 @@ const AppLayout = () => {
               </button>
               <div>
                 <p className="text-sm uppercase tracking-wider text-blue-400">Wolves Training Hub</p>
-                <h1 className="text-2xl font-semibold text-white">
-                  Sistema de gestǜo de treinos
+                <h1 className="text-xl font-semibold text-white sm:text-2xl">
+                  Sistema de gestao de treinos
                 </h1>
-                <p className="text-sm text-wolves-muted">
-                  Painel do organizador �?� controle completo do time
+                <p className="hidden text-sm text-wolves-muted sm:block">
+                  Painel do organizador - controle completo do time
                 </p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-right text-sm text-white/80">
-              Domingo, 9 de novembro de 2025
-              <p className="text-wolves-muted">�sltima sincroniza��ǜo hǭ 5 minutos</p>
+            <div className="hidden rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-right text-sm text-white/80 sm:block">
+              Domingo, 9/11/2025
+              <p className="text-wolves-muted">Ultima sincronizacao ha 5 minutos</p>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-6 py-6 lg:px-8 lg:py-8">
+        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           <div className="mx-auto w-full max-w-6xl space-y-8">
             <Outlet />
           </div>

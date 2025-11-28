@@ -39,18 +39,18 @@ const Sidebar = ({ items, isOpen = false, onClose }: SidebarProps) => {
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-40 flex h-full w-72 flex-col border-r border-wolves-border bg-[#0C111D]',
+          'fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-wolves-border bg-[#0C111D] sm:w-72',
           'transform transition-transform duration-200 lg:static lg:translate-x-0 lg:flex',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
         <div className="flex items-center gap-3 border-b border-wolves-border px-6 py-6">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-2xl font-semibold text-blue-400">
-            �Y?�
+            W
           </div>
           <div>
             <p className="text-sm text-wolves-muted">{user?.name ?? 'Organizador'}</p>
-            <p className="text-lg font-semibold text-white truncate max-w-[140px]" title={user?.email ?? 'Wolves'}>
+            <p className="max-w-[140px] truncate text-lg font-semibold text-white" title={user?.email ?? 'Wolves'}>
               {user?.email ?? 'Wolves'}
             </p>
           </div>
