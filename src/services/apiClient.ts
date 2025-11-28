@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3333'
+// Remove trailing slashes to avoid double "//" when concatenating paths.
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333').replace(/\/+$/, '')
 
 let authToken: string | null = null
 
