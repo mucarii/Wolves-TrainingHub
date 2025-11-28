@@ -29,7 +29,7 @@ cd server
 npm install
 npm run dev            # http://localhost:3333
 ```
-O banco é criado em `server/data/wolves.db`. Um usuário administrador é gerado automaticamente com as credenciais definidas no `.env` (padrão `admin@wolves.com / wolves123`). Para popular jogadores fictícios, defina `SEED_ON_START=true` antes da primeira execução.
+O banco é criado em `server/data/wolves.db`. Um usuário administrador é gerado automaticamente com as credenciais definidas no `.env`. Para popular jogadores fictícios, defina `SEED_ON_START=true` antes da primeira execução.
 
 ### Frontend
 ```bash
