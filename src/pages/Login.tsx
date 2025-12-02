@@ -82,10 +82,6 @@ const LoginPage = () => {
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-
-        <p className="mt-6 w-full text-center text-sm font-medium text-white/70">
-          Use o acesso do administrador configurado no backend.
-        </p>
       </div>
     </div>
   )
