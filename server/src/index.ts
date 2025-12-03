@@ -9,6 +9,7 @@ import teamDrawRoutes from './routes/teamDrawRoutes'
 import authRoutes from './routes/authRoutes'
 import healthRoutes from './routes/healthRoutes'
 import { runMigrations, seedDatabase, ensureAdminUser } from './utils/bootstrap'
+import { recalculatePlayerFrequencies } from './repositories/attendanceRepository'
 import { authenticate } from './middlewares/authMiddleware'
 
 runMigrations()
@@ -16,6 +17,7 @@ if (process.env.SEED_ON_START === 'true') {
   seedDatabase()
 }
 ensureAdminUser()
+recalculatePlayerFrequencies()
 
 const app = express()
 

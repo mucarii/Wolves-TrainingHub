@@ -1,33 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Shuffle as ShuffleIcon, Users, History as HistoryIcon } from 'lucide-react'
-import { playerService } from '../services/playerService'
+import { attendanceService, type AttendanceListItem } from '../services/attendanceService'
 import { teamDrawService, type TeamDrawResult } from '../services/teamDrawService'
-import type { Player } from '../types/player'
+
+const today = new Date().toISOString().slice(0, 10)
 
 const TeamDrawPage = () => {
-  const [players, setPlayers] = useState<Player[]>([])
+  const [attendanceList, setAttendanceList] = useState<AttendanceListItem[]>([])
   const [teamsCount, setTeamsCount] = useState(2)
   const [drawType, setDrawType] = useState<'balanced' | 'random'>('balanced')
   const [seedInput, setSeedInput] = useState('')
   const [currentDraw, setCurrentDraw] = useState<TeamDrawResult | null>(null)
   const [history, setHistory] = useState<TeamDrawResult[]>([])
-  const [isLoadingPlayers, setIsLoadingPlayers] = useState(true)
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState(true)
   const [isDrawing, setIsDrawing] = useState(false)
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const loadPlayers = useCallback(async () => {
+  const loadAttendance = useCallback(async () => {
     try {
-      setIsLoadingPlayers(true)
+      setIsLoadingAttendance(true)
       setErrorMessage(null)
-      const data = await playerService.list()
-      setPlayers(data)
+      const data = await attendanceService.getByDate(today)
+      setAttendanceList(data.attendance)
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Nao foi possivel carregar os jogadores.',
+        error instanceof Error ? error.message : 'Nao foi possivel carregar as presencas.',
       )
     } finally {
-      setIsLoadingPlayers(false)
+      setIsLoadingAttendance(false)
     }
   }, [])
 
@@ -44,18 +45,21 @@ const TeamDrawPage = () => {
   }, [])
 
   useEffect(() => {
-    loadPlayers()
+    loadAttendance()
     loadHistory()
-  }, [loadPlayers, loadHistory])
+  }, [loadAttendance, loadHistory])
 
-  const activePlayers = useMemo(
-    () => players.filter((player) => player.status === 'Ativo'),
-    [players],
+  const availablePlayers = useMemo(
+    () =>
+      attendanceList.filter(
+        (player) => player.status === 'Ativo' && player.present,
+      ),
+    [attendanceList],
   )
 
   const handleDraw = async () => {
-    if (activePlayers.length === 0) {
-      setErrorMessage('Nenhum jogador ativo para o sorteio.')
+    if (availablePlayers.length === 0) {
+      setErrorMessage('Nenhum jogador presente para o sorteio.')
       return
     }
 
@@ -140,9 +144,9 @@ const TeamDrawPage = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Jogadores disponiveis</label>
+            <label className="text-sm font-semibold text-white/80">Jogadores presentes</label>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xl font-semibold text-white">
-              {isLoadingPlayers ? '...' : activePlayers.length}
+              {isLoadingAttendance ? '...' : availablePlayers.length}
             </div>
           </div>
         </div>
@@ -150,7 +154,7 @@ const TeamDrawPage = () => {
         <button
           onClick={handleDraw}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isLoadingPlayers || activePlayers.length === 0 || isDrawing}
+          disabled={isLoadingAttendance || availablePlayers.length === 0 || isDrawing}
         >
           <ShuffleIcon size={18} />
           {isDrawing ? 'Sorteando...' : 'Sortear times'}
@@ -170,22 +174,22 @@ const TeamDrawPage = () => {
 
       <div className="rounded-3xl border border-wolves-border bg-wolves-card/70 p-6 shadow-card">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-white">Jogadores ativos</h3>
+          <h3 className="text-xl font-semibold text-white">Jogadores presentes hoje</h3>
           <div className="flex items-center gap-2 text-sm text-wolves-muted">
             <Users size={16} />
-            Lista usada como base para o sorteio
+            Somente quem marcou presenca entra no sorteio
           </div>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {isLoadingPlayers && (
+          {isLoadingAttendance && (
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm text-wolves-muted">
-              Carregando jogadores...
+              Carregando presencas...
             </div>
           )}
 
-          {!isLoadingPlayers &&
-            activePlayers.map((player) => (
+          {!isLoadingAttendance &&
+            availablePlayers.map((player) => (
               <div
                 key={player.id}
                 className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
@@ -200,9 +204,9 @@ const TeamDrawPage = () => {
               </div>
             ))}
 
-          {!isLoadingPlayers && activePlayers.length === 0 && (
+          {!isLoadingAttendance && availablePlayers.length === 0 && (
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-wolves-muted">
-              Nenhum jogador ativo disponivel. Cadastre e ative jogadores para sortear.
+              Nenhum jogador presente hoje. Registre a presenca antes de sortear.
             </div>
           )}
         </div>

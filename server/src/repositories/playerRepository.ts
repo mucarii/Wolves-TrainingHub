@@ -1,4 +1,5 @@
 import db from '../database'
+import { recalculatePlayerFrequencies } from './attendanceRepository'
 
 export type PlayerRecord = {
   id: number
@@ -129,6 +130,7 @@ export const deletePlayer = (id: number) => {
 }
 
 export const getPlayerStats = () => {
+  recalculatePlayerFrequencies()
   const { total } = db
     .prepare(`SELECT COUNT(*) as total FROM players WHERE is_true = 1`)
     .get() as { total: number }

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { recalculatePlayerFrequencies } from '../repositories/attendanceRepository'
 import {
   createPlayer,
   deletePlayer,
@@ -23,6 +24,7 @@ const basePlayerSchema = z.object({
 })
 
 router.get('/', (_req, res) => {
+  recalculatePlayerFrequencies()
   const players = listPlayers()
   res.json(players)
 })

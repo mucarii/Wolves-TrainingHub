@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { listActivePlayers } from '../repositories/playerRepository'
+import { listPresentPlayersForDate } from '../repositories/attendanceRepository'
 import { saveTeamDraw, listTeamDraws } from '../repositories/teamDrawRepository'
 
 const router = Router()
@@ -9,6 +9,13 @@ const drawSchema = z.object({
   teamsCount: z.number().int().min(2).max(8),
   drawType: z.enum(['balanced', 'random']),
   seed: z.string().trim().min(1).max(64).optional(),
+})
+
+const drawQuerySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 })
 
 const listSchema = z.object({
@@ -21,7 +28,7 @@ const listSchema = z.object({
 })
 
 type DrawType = 'balanced' | 'random'
-type DrawPlayer = ReturnType<typeof listActivePlayers>[number]
+type DrawPlayer = ReturnType<typeof listPresentPlayersForDate>[number]
 
 const hashSeed = (value: string) => {
   let hash = 0
@@ -97,24 +104,34 @@ const buildTeams = (players: DrawPlayer[], teamsCount: number, drawType: DrawTyp
 }
 
 router.post('/', (req, res) => {
-  const parsed = drawSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ message: 'Dados inválidos', issues: parsed.error.format() })
+  const parsedBody = drawSchema.safeParse(req.body)
+  if (!parsedBody.success) {
+    res.status(400).json({ message: 'Dados inválidos', issues: parsedBody.error.format() })
     return
   }
 
-  const players = listActivePlayers()
+  const parsedQuery = drawQuerySchema.safeParse(req.query)
+  if (!parsedQuery.success) {
+    res.status(400).json({ message: 'Parâmetros inválidos', issues: parsedQuery.error.format() })
+    return
+  }
+
+  const trainingDate = parsedQuery.data?.date ?? new Date().toISOString().slice(0, 10)
+  const players = listPresentPlayersForDate(trainingDate)
   if (players.length === 0) {
-    res.status(400).json({ message: 'Nenhum jogador ativo disponível para o sorteio.' })
+    res.status(400).json({
+      message:
+        'Nenhum jogador presente disponível para o sorteio. Registre as presenças antes de sortear.',
+    })
     return
   }
 
-  const seed = parsed.data.seed ?? Date.now().toString(36)
-  const teams = buildTeams(players, parsed.data.teamsCount, parsed.data.drawType, seed)
+  const seed = parsedBody.data.seed ?? Date.now().toString(36)
+  const teams = buildTeams(players, parsedBody.data.teamsCount, parsedBody.data.drawType, seed)
   const record = saveTeamDraw({
     seed,
-    drawType: parsed.data.drawType,
-    teamsCount: parsed.data.teamsCount,
+    drawType: parsedBody.data.drawType,
+    teamsCount: parsedBody.data.teamsCount,
     teams,
   })
 

@@ -4,6 +4,7 @@ import {
   bulkSaveAttendance,
   getAttendanceSummary,
   listAttendanceForDate,
+  recalculatePlayerFrequencies,
 } from '../repositories/attendanceRepository'
 
 const router = Router()
@@ -22,6 +23,7 @@ const attendanceSchema = z.object({
 
 router.get('/', (req, res) => {
   const dateParam = (req.query.date as string) ?? new Date().toISOString().slice(0, 10)
+  recalculatePlayerFrequencies()
   const attendance = listAttendanceForDate(dateParam)
   const summary = getAttendanceSummary(dateParam)
   res.json({ date: dateParam, summary, attendance })
@@ -44,6 +46,8 @@ router.put('/:date', (req, res) => {
       note: record.note ?? null,
     })),
   )
+
+  recalculatePlayerFrequencies()
 
   const summary = getAttendanceSummary(dateParam)
   res.json({ message: 'Presenças atualizadas com sucesso', summary })

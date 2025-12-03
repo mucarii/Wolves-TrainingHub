@@ -53,10 +53,6 @@ const AppLayout = () => {
                 </p>
               </div>
             </div>
-            <div className="hidden rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-right text-sm text-white/80 sm:block">
-              Domingo, 9/11/2025
-              <p className="text-wolves-muted">Ultima sincronizacao ha 5 minutos</p>
-            </div>
           </div>
         </header>
 

@@ -1,4 +1,5 @@
 import db from '../database'
+import type { PlayerRecord } from './playerRepository'
 
 export type AttendanceRecord = {
   player_id: number
@@ -89,13 +90,14 @@ export const getAttendanceSummary = (trainingDate: string) => {
            ON p.id = a.player_id
         WHERE a.training_date = ?
           AND a.present = 1
-          AND p.is_true = 1`,
+          AND p.is_true = 1
+          AND p.status = 'Ativo'`,
     )
     .get(trainingDate) as { count: number } | undefined
 
-  const total = db.prepare(`SELECT COUNT(*) as total FROM players WHERE is_true = 1`).get() as
-    | { total: number }
-    | undefined
+  const total = db
+    .prepare(`SELECT COUNT(*) as total FROM players WHERE is_true = 1 AND status = 'Ativo'`)
+    .get() as { total: number } | undefined
 
   return {
     present: present?.count ?? 0,
@@ -184,4 +186,79 @@ export const getPlayerPresenceEntries = (startDate?: string) => {
     .all({ startDate: startDate ?? null }) as PlayerPresenceEntryRow[]
 
   return rows
+}
+
+export const listPresentPlayersForDate = (trainingDate: string): PlayerRecord[] => {
+  const rows = db
+    .prepare(
+      `SELECT p.id,
+              p.name,
+              p.email,
+              p.phone,
+              p.position,
+              p.short_position,
+              p.frequency,
+              p.status,
+              p.emergency_contact,
+              p.medical_notes,
+              p.created_at,
+              p.updated_at,
+              p.is_true
+         FROM attendance a
+         JOIN players p
+           ON p.id = a.player_id
+        WHERE a.training_date = @trainingDate
+          AND a.present = 1
+          AND p.is_true = 1
+          AND p.status = 'Ativo'
+        ORDER BY p.name`,
+    )
+    .all({ trainingDate }) as PlayerRecord[]
+
+  return rows
+}
+
+export const recalculatePlayerFrequencies = () => {
+  const rows = db
+    .prepare(
+      `SELECT p.id as player_id,
+              COUNT(a.id) as total_sessions,
+              SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_sessions
+         FROM players p
+         LEFT JOIN attendance a
+                ON a.player_id = p.id
+        WHERE p.is_true = 1
+        GROUP BY p.id`,
+    )
+    .all() as Array<{
+    player_id: number
+    total_sessions: number
+    present_sessions: number | null
+  }>
+
+  const updateFrequency = db.prepare(
+    `UPDATE players
+        SET frequency = @frequency,
+            updated_at = @updated_at
+      WHERE id = @id`,
+  )
+
+  const now = new Date().toISOString()
+
+  const applyUpdates = db.transaction(() => {
+    for (const row of rows) {
+      const frequency =
+        row.total_sessions > 0
+          ? Math.round(((row.present_sessions ?? 0) / row.total_sessions) * 100)
+          : 0
+
+      updateFrequency.run({
+        id: row.player_id,
+        frequency,
+        updated_at: now,
+      })
+    }
+  })
+
+  applyUpdates()
 }

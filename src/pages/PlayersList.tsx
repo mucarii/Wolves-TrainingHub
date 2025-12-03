@@ -80,6 +80,15 @@ const PlayersListPage = () => {
 
   const totalPlayers = playerList.length
   const activePlayers = playerList.filter((player) => player.status === 'Ativo').length
+  const averageFrequency = useMemo(() => {
+    if (playerList.length === 0) return 0
+    const totalFrequency = playerList.reduce((sum, player) => sum + (player.frequency ?? 0), 0)
+    return Math.round(totalFrequency / playerList.length)
+  }, [playerList])
+  const coveredPositions = useMemo(
+    () => new Set(playerList.map((player) => player.position)).size,
+    [playerList],
+  )
 
   return (
     <div className="space-y-6">
@@ -109,11 +118,15 @@ const PlayersListPage = () => {
         </div>
         <div className="rounded-2xl border border-wolves-border bg-wolves-card/60 p-4">
           <p className="text-sm text-wolves-muted">Frequência média</p>
-          <p className="text-2xl font-semibold text-white">87%</p>
+          <p className="text-2xl font-semibold text-white">
+            {playerList.length > 0 ? `${averageFrequency}%` : '--'}
+          </p>
         </div>
         <div className="rounded-2xl border border-wolves-border bg-wolves-card/60 p-4">
           <p className="text-sm text-wolves-muted">Posições cobertas</p>
-          <p className="text-2xl font-semibold text-white">2</p>
+          <p className="text-2xl font-semibold text-white">
+            {playerList.length > 0 ? coveredPositions : '--'}
+          </p>
         </div>
       </div>
 
