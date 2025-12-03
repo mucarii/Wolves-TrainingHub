@@ -70,8 +70,8 @@ Todos os endpoints (exceto `/health` e `/api/auth/login`) exigem header `Authori
 - Logout em qualquer tela (botao "Sair" na sidebar) que limpa o token e redireciona para `/login`.
 
 ## Desenvolvedores
+- Giovana Sena de Carvalho
+- Lucas Gabriel de Souza
+- Mateus Rubio Durao
 - Murilo Luiz Calore Ritto
-- Giovana Sena
-- Lucas Gabriel
-- Matheus Rubio
-- Vinicius Silva
+- Vinicius Henrique de Oliveira Silva
